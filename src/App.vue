@@ -2,7 +2,7 @@
     <div class="wrapper d-flex flex-column align-items-center w-100">
         <h1 class="mb-5 h1 text-center">Todo Application</h1>
         <form class="d-flex justify-content-center w-50 mb-3">
-            <input v-model="searchQuery" class="form-control mr-2" name="user_search_query" type="search" placeholder="Search your task here..." aria-label="Search your task here">
+            <input v-model="searchQuery" class="query-input form-control mr-2" name="user_search_query" type="search" placeholder="Search your task here..." aria-label="Search your task here">
         </form>
         <form @submit.prevent="handleData" class="d-flex justify-content-center w-50 mb-5">
             <input v-model="formData.task" class="task-input form-control mr-2" name="user_task" type="text" placeholder="Add new task here..." aria-label="Add new task">
@@ -11,10 +11,12 @@
         <div class="w-50">
             <h2 class="text-center mb-4">My tasks</h2>
             <ul class="list-group list-group-flush">
-            <div v-if="tasks.length == 0" class="w-100 border p-4 rounded text-center">
-                Task box is empty !
+       
+            <div v-if="tasks.length == 0 || filteredTasks?.length == 0" class="w-100 border p-4 rounded text-center">
+                {{ filteredTasks?.length == 0 ? "Not found !" : "Task box is empty !" }}
             </div>
-            <template v-for="task in tasks" :key="task">
+      
+            <template v-for="task in filteredTasks == null ? tasks : filteredTasks" :key="task">
                 <li class="list-group-item bg-light" data-id="{{task.id}}">
                     <form class="d-flex align-items-center justify-content-center">
                         <input v-model="task.status" class="input-check" type="checkbox" :checked="task.status == true">
@@ -24,6 +26,7 @@
                         <button class="btn btn-primary mr-1" @click="editTask(task.id)">
                             <img width="20" height="20" src="../src/assets/edit.svg" alt="close icon">
                         </button>
+
                         <button class="btn btn-danger" @click="deleteTask(task.id)">
                             <img width="20" height="20" src="../src/assets/delete.svg" alt="close icon">
                         </button>
@@ -43,8 +46,9 @@
         task: ""
       },
       tasks: sessionStorage.getItem("tasks") ? JSON.parse(sessionStorage.getItem("tasks")) : [],
-      searchQuery: "",
-      deepCopyTasks: this.tasks 
+      searchQuery: sessionStorage.getItem("searchQuery") || "",
+      filteredTasks: JSON.parse(sessionStorage.getItem("filteredTasks")) || null
+
     }
    },
    methods: {
@@ -81,7 +85,11 @@
     },
     getStoredTasks() {
         return JSON.parse(sessionStorage.getItem("tasks") || []);
+    },
+    getSearchQuery() {
+        return sessionStorage.getItem("searchQuery") || "";
     }
+
    },
    computed: {},
    watch: {
@@ -93,10 +101,16 @@
       },
       searchQuery: {
         handler(newValue) {
-        const filteredTasks = this.getStoredTasks().filter(item => item.task.toLowerCase().startsWith(newValue));
-        this.tasks = filteredTasks;
+          if(newValue != '') {
+            this.filteredTasks = this.tasks.filter(item => item.task.toLowerCase().startsWith(newValue));
+            sessionStorage.setItem("filteredTasks", JSON.stringify(this.filteredTasks));
+            sessionStorage.setItem("searchQuery", newValue);
+          }else {
+            this.filteredTasks = null;
+            sessionStorage.setItem("searchQuery", "");
+          }
         },
-        immediate: true
+        // immediate: true
       }
    }
  }
